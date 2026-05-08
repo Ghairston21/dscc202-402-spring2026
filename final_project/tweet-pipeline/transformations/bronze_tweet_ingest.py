@@ -1,4 +1,8 @@
 # Databricks notebook source
+
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Bronze Layer: Raw Tweet Ingestion
 # MAGIC
@@ -23,12 +27,16 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 2
 # TODO: Import necessary libraries
 # You will need:
 # - pyspark.pipelines (as dp)
 # - pyspark.sql.types (for schema definition)
 # - pyspark.sql.functions (for column operations)
 
+import pyspark.pipelines as dp
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
 
 # COMMAND ----------
 
@@ -46,8 +54,13 @@ spark.conf.set("spark.sql.legacy.timeParserPolicy", "LEGACY")
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 6
 # TODO: Create streaming table definition
 
+dp.create_streaming_table(
+  name = "tweets_bronze",
+  comment = "bronze layer table",
+)
 
 # COMMAND ----------
 
@@ -65,7 +78,12 @@ spark.conf.set("spark.sql.legacy.timeParserPolicy", "LEGACY")
 # COMMAND ----------
 
 # TODO: Define tweet schema as StructType
-
+tweet_schema = StructType([
+  StructField("date", StringType()),
+  StructField("user", StringType()),
+  StructField("text", StringType()),
+  StructField("sentiment", StringType())
+])
 
 # COMMAND ----------
 
@@ -86,8 +104,31 @@ spark.conf.set("spark.sql.legacy.timeParserPolicy", "LEGACY")
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 10
 # TODO: Define append_flow function for bronze ingestion
-
+# TODO: Create @dp.append_flow function that:
+# Reads streaming data with CloudFiles (format: "cloudFiles")
+# Configures JSON as the data format
+# Sets schema checkpoint location: "/Volumes/workspace/default/checkpoints/"
+# Applies the tweet schema defined above
+# Loads from: "s3://dsas-datasets/tweets/"
+# Adds metadata columns:
+# source_file from _metadata.file_path
+# processing_time using current_timestamp()
+@dp.append_flow(
+  target = "tweets_bronze"
+)
+def append_tweets():
+  return (
+    spark.readStream
+      .format("cloudFiles")
+      .option("cloudFiles.format", "json")
+      .option("cloudFiles.schemaLocation", "/Volumes/workspace/default/checkpoints/")
+      .schema(tweet_schema)
+      .load("s3://dsas-datasets/test-tweets/")
+      .withColumn("source_file", col("_metadata.file_path"))
+      .withColumn("processing_time", current_timestamp())
+  )
 
 # COMMAND ----------
 

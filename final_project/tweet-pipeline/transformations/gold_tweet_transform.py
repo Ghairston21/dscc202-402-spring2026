@@ -30,12 +30,16 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 2
 # TODO: Import necessary libraries
 # You will need:
 # - pyspark.pipelines (as dp)
 # - pyspark.sql.types and pyspark.sql.functions
 # - mlflow for model loading
-
+import pyspark.pipelines as dp
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+import mlflow
 
 # COMMAND ----------
 
@@ -47,6 +51,11 @@
 # COMMAND ----------
 
 # TODO: Create streaming table definition
+
+dp.create_streaming_table(
+  name = "tweets_gold",
+  comment = "gold layer table",
+)
 
 
 # COMMAND ----------
@@ -61,6 +70,8 @@
 
 # TODO: Configure MLflow registry
 
+mlflow.set_registry_uri("databricks-uc")
+
 
 # COMMAND ----------
 
@@ -74,6 +85,15 @@
 # COMMAND ----------
 
 # TODO: Define model output schema
+# TODO: Define StructType for model output with fields:
+# label (StringType): LABEL_0, LABEL_1, or LABEL_2
+# score (DoubleType): Confidence score 0.0-1.0
+model_output_schema = StructType([
+  StructField("label", StringType(), True),
+  StructField("score", DoubleType(), True),
+])
+
+
 
 
 # COMMAND ----------
@@ -89,8 +109,14 @@
 
 # COMMAND ----------
 
-# TODO: Load model and create Spark UDF
-
+# DBTITLE 1,Cell 10
+# Load model and create Spark UDF for distributed ML inference
+model_uri = "models:/workspace.default.small_sentiment_model/1"
+sentiment_udf = mlflow.pyfunc.spark_udf(
+    spark,
+    model_uri,
+    result_type=model_output_schema
+)
 
 # COMMAND ----------
 
@@ -114,8 +140,55 @@
 
 # COMMAND ----------
 
-# TODO: Define append_flow function for gold transformation
-
+# DBTITLE 1,Cell 12
+@dp.append_flow(
+    target="tweets_gold",
+    comment="Apply ML sentiment predictions to silver tweets"
+)
+def gold_sentiment_predictions():
+    # Read from tweets_silver streaming table
+    df = spark.readStream.table("tweets_silver")
+    
+    # Apply model UDF to cleaned_text column
+    df = df.withColumn("model_output", sentiment_udf(col("cleaned_text")))
+    
+    # Extract label and score from model output struct, scale score to 0-100
+    df = df.withColumn("predicted_label", col("model_output.label"))
+    df = df.withColumn("predicted_score", (col("model_output.score") * 100).cast("double"))
+    
+    # Map labels to sentiment strings
+    df = df.withColumn(
+        "predicted_sentiment",
+        when(col("predicted_label") == "LABEL_0", "negative")
+        .when(col("predicted_label") == "LABEL_1", "neutral")
+        .when(col("predicted_label") == "LABEL_2", "positive")
+    )
+    
+    # Create binary sentiment_id from ground truth sentiment (0=negative, 1=positive/neutral)
+    df = df.withColumn(
+        "sentiment_id",
+        when(col("sentiment") == "0", 0).otherwise(1)
+    )
+    
+    # Create binary predicted_sentiment_id (0=negative, 1=positive/neutral)
+    df = df.withColumn(
+        "predicted_sentiment_id",
+        when(col("predicted_sentiment") == "negative", 0).otherwise(1)
+    )
+    
+    # Select final columns (9 total) retaining columns from tweets_silver
+    return df.select(
+        "timestamp",
+        "mention",
+        "cleaned_text",
+        "text",
+        "sentiment",
+        "predicted_score",
+        "predicted_sentiment",
+        "sentiment_id",
+        "predicted_sentiment_id",
+        "predicted_label"
+    )
 
 # COMMAND ----------
 

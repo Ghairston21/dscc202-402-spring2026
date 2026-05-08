@@ -33,6 +33,11 @@
 # - pyspark.sql.types and pyspark.sql.functions
 # - re module for regex operations
 
+import pyspark.pipelines as dp
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+import re
+
 
 # COMMAND ----------
 
@@ -44,6 +49,11 @@
 # COMMAND ----------
 
 # TODO: Create streaming table definition
+dp.create_streaming_table(
+  name = "tweets_silver",
+  comment = "silver layer table",
+)
+
 
 
 # COMMAND ----------
@@ -61,7 +71,19 @@
 
 # COMMAND ----------
 
-# TODO: Define find_mentions function and create UDF
+# TODO: Create Python function that extracts @mentions from text
+# Function name: find_mentions(text)
+# Regex pattern: r"@[\w]+"
+# Returns: List of @mentions found in text
+# Register as Spark UDF with ArrayType(StringType()) return type
+# 
+def find_mentions(text):
+    if text is None:
+        return []
+    return re.findall(r"@[\w]+", text)
+
+find_mentions_udf = udf(find_mentions, ArrayType(StringType()))
+
 
 
 # COMMAND ----------
@@ -82,7 +104,31 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 8
 # TODO: Define append_flow function for silver transformation
+# TODO: Create @dp.append_flow function that:
+#Reads from tweets_bronze streaming table
+#Removes @mentions from text using regexp_replace (pattern: "@\S+")
+#Extracts mentions using your UDF
+# Explodes mentions array (use explode_outer to preserve tweets with no mentions)
+# Converts mentions to lowercase
+# Parses date string to timestamp (format: "EEE MMM dd HH:mm:ss zzz yyyy")
+# Selects final columns: timestamp, mention, cleaned_text, text, sentiment
+
+@dp.append_flow(
+  target = "tweets_silver"
+)
+def silver_transform():
+  return (
+    spark.readStream.table("tweets_bronze")
+    .withColumn("cleaned_text", regexp_replace("text", "@\\S+", ""))
+    .withColumn("mentions", find_mentions_udf("text"))
+    .withColumn("mention", explode_outer("mentions"))
+    .withColumn("mention", lower("mention"))
+    .withColumn("timestamp", to_timestamp("date", "EEE MMM dd HH:mm:ss zzz yyyy"))
+    .select("timestamp", "mention", "cleaned_text", "text", "sentiment")
+  )
+
 
 
 # COMMAND ----------

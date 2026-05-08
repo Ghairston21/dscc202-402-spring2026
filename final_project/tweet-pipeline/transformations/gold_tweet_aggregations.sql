@@ -40,8 +40,20 @@
 
 -- COMMAND ----------
 
--- TODO: Create materialized view with aggregations
-
+-- DBTITLE 1,Cell 3
+CREATE OR REFRESH MATERIALIZED VIEW gold_tweet_aggregations
+AS
+SELECT
+  mention,
+  COUNT(*) FILTER (WHERE predicted_sentiment = 'positive') AS positive,
+  COUNT(*) FILTER (WHERE predicted_sentiment = 'negative') AS negative,
+  COUNT(*) FILTER (WHERE predicted_sentiment IN ('positive', 'negative')) AS total,
+  MIN(timestamp) AS min_timestamp,
+  MAX(timestamp) AS max_timestamp
+FROM tweets_gold
+WHERE mention IS NOT NULL
+GROUP BY mention
+ORDER BY total DESC
 
 -- COMMAND ----------
 
