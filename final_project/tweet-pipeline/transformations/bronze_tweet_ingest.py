@@ -125,7 +125,7 @@ def append_tweets():
       .option("cloudFiles.format", "json")
       .option("cloudFiles.schemaLocation", "/Volumes/workspace/default/checkpoints/")
       .schema(tweet_schema)
-      .load("s3://dsas-datasets/test-tweets/")
+      .load("s3://dsas-datasets/tweets")
       .withColumn("source_file", col("_metadata.file_path"))
       .withColumn("processing_time", current_timestamp())
   )

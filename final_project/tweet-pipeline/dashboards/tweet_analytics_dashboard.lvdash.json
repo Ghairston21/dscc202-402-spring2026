@@ -1,0 +1,479 @@
+{
+  "datasets": [
+    {
+      "name": "0493d00b",
+      "displayName": "tweets_silver",
+      "config": {
+        "version": "1.1",
+        "source": "workspace.default.tweets_silver",
+        "dimensions": [
+          {
+            "name": "timestamp",
+            "expr": "source.timestamp",
+            "displayName": "Timestamp"
+          },
+          {
+            "name": "mention",
+            "expr": "source.mention",
+            "displayName": "Mention"
+          },
+          {
+            "name": "cleaned_text",
+            "expr": "source.cleaned_text",
+            "displayName": "Cleaned Text"
+          },
+          {
+            "name": "text",
+            "expr": "source.text",
+            "displayName": "Text"
+          },
+          {
+            "name": "sentiment",
+            "expr": "source.sentiment",
+            "displayName": "Sentiment"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "e4618e67",
+      "displayName": "tweets_bronze",
+      "config": {
+        "version": "1.1",
+        "source": "workspace.default.tweets_bronze",
+        "dimensions": [
+          {
+            "name": "date",
+            "expr": "source.date",
+            "displayName": "Date"
+          },
+          {
+            "name": "user",
+            "expr": "source.user",
+            "displayName": "User"
+          },
+          {
+            "name": "text",
+            "expr": "source.text",
+            "displayName": "Text"
+          },
+          {
+            "name": "sentiment",
+            "expr": "source.sentiment",
+            "displayName": "Sentiment"
+          },
+          {
+            "name": "source_file",
+            "expr": "source.source_file",
+            "displayName": "Source File"
+          },
+          {
+            "name": "processing_time",
+            "expr": "source.processing_time",
+            "displayName": "Processing Time"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "top_10_users",
+      "displayName": "Top 10 Users by Tweet Count",
+      "config": {
+        "version": "1.1",
+        "source": "SELECT \n  user,\n  COUNT(*) as tweet_count\nFROM workspace.default.tweets_bronze GROUP BY user ORDER BY tweet_count DESC LIMIT 10\n",
+        "dimensions": [
+          {
+            "name": "user",
+            "expr": "user",
+            "displayName": "User"
+          }
+        ],
+        "measures": [
+          {
+            "name": "tweet_count",
+            "expr": "SUM(tweet_count)",
+            "displayName": "Tweet Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "top_10_positive",
+      "displayName": "Top 10 Most Positively Mentioned",
+      "config": {
+        "version": "1.1",
+        "source": "SELECT \n  mention,\n  positive\nFROM workspace.default.gold_tweet_aggregations WHERE mention IS NOT NULL ORDER BY positive DESC LIMIT 10\n",
+        "dimensions": [
+          {
+            "name": "mention",
+            "expr": "mention",
+            "displayName": "Mention"
+          }
+        ],
+        "measures": [
+          {
+            "name": "positive_count",
+            "expr": "SUM(positive)",
+            "displayName": "Positive Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "top_10_negative",
+      "displayName": "Top 10 Most Negatively Mentioned",
+      "config": {
+        "version": "1.1",
+        "source": "SELECT \n  mention,\n  negative\nFROM workspace.default.gold_tweet_aggregations WHERE mention IS NOT NULL ORDER BY negative DESC LIMIT 10\n",
+        "dimensions": [
+          {
+            "name": "mention",
+            "expr": "mention",
+            "displayName": "Mention"
+          }
+        ],
+        "measures": [
+          {
+            "name": "negative_count",
+            "expr": "SUM(negative)",
+            "displayName": "Negative Count"
+          }
+        ]
+      }
+    }
+  ],
+  "pages": [
+    {
+      "name": "7a86abac",
+      "displayName": "Untitled page",
+      "layout": [
+        {
+          "widget": {
+            "name": "total_tweets_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e4618e67",
+                  "fields": [
+                    {
+                      "name": "measure(count)",
+                      "expression": "MEASURE(`count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Tweets",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "tweets_with_mentions_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0493d00b",
+                  "fields": [
+                    {
+                      "name": "measure(count)",
+                      "expression": "MEASURE(`count`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`mention` IS NOT NULL"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Tweets with Mentions",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "tweets_without_mentions_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0493d00b",
+                  "fields": [
+                    {
+                      "name": "measure(count)",
+                      "expression": "MEASURE(`count`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`mention` IS NULL"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Tweets without Mentions",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "top_10_users_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_10_users",
+                  "fields": [
+                    {
+                      "name": "measure(tweet_count)",
+                      "expression": "MEASURE(`tweet_count`)"
+                    },
+                    {
+                      "name": "user",
+                      "expression": "`user`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Top 10 Users by Tweet Count",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(tweet_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "user",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "top_10_positive_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_10_positive",
+                  "fields": [
+                    {
+                      "name": "measure(positive_count)",
+                      "expression": "MEASURE(`positive_count`)"
+                    },
+                    {
+                      "name": "mention",
+                      "expression": "`mention`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Top 10 Most Positively Mentioned",
+                "showTitle": true
+              },
+              "mark": {
+                "colors": [
+                  "#2ECC40"
+                ]
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(positive_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "mention",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "top_10_negative_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_10_negative",
+                  "fields": [
+                    {
+                      "name": "measure(negative_count)",
+                      "expression": "MEASURE(`negative_count`)"
+                    },
+                    {
+                      "name": "mention",
+                      "expression": "`mention`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Top 10 Most Negatively Mentioned",
+                "showTitle": true
+              },
+              "mark": {
+                "colors": [
+                  "#FF4136"
+                ]
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(negative_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "mention",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
