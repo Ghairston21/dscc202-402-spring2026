@@ -22,6 +22,7 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 2
 # TODO: Import necessary libraries
 # You will need:
 # - pyspark.sql functions
@@ -31,6 +32,18 @@
 # - matplotlib.pyplot
 # - sklearn.metrics (confusion_matrix, classification_report, ConfusionMatrixDisplay)
 
+from pyspark.sql import functions as F
+from pyspark.sql.types import *
+from pyspark.sql.window import Window
+
+import pandas as pd
+
+import mlflow
+from mlflow.tracking import MlflowClient
+
+from delta.tables import DeltaTable
+from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
 
 # COMMAND ----------
 
@@ -44,7 +57,7 @@
 
 # COMMAND ----------
 
-# TODO: Load gold table
+df = spark.read.format("delta").table("tweets_gold")
 
 
 # COMMAND ----------
@@ -63,8 +76,12 @@
 
 # COMMAND ----------
 
-# TODO: Generate classification report
-
+pdf = df.toPandas()
+y_true = pdf['sentiment_id']
+y_pred = pdf['predicted_sentiment_id']
+target_names = ["Negative", "Positive"]
+report = classification_report(y_true, y_pred, target_names=target_names, output_dict=True)
+report
 
 # COMMAND ----------
 
@@ -84,7 +101,14 @@
 
 # COMMAND ----------
 
-# TODO: Create and display confusion matrix
+# DBTITLE 1,Cell 8
+# TODO: Visualize model performance with confusion matrix
+import matplotlib.pyplot as plt
+cm = confusion_matrix(y_true, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=target_names)
+fig, ax = plt.subplots(figsize=(4, 4))
+disp.plot(ax=ax, cmap='Blues')
+ax.set_title("Confusion Matrix")
 
 
 # COMMAND ----------
@@ -109,8 +133,19 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 10
 # TODO: Log metrics and artifacts to MLflow
+mlflow.set_registry_uri("databricks-uc")
 
+history_df = spark.sql("DESCRIBE HISTORY workspace.default.tweets_silver LIMIT 1")
+silver_delta_version = int(history_df.select("version").first()[0])
+
+with mlflow.start_run():
+    mlflow.log_metric("accuracy", report["accuracy"])
+    mlflow.log_param("model_name", "workspace.default.tweet_sentiment_model")
+    mlflow.log_param("model_version", 1)
+    mlflow.log_param("silver_delta_version", silver_delta_version)
+    fig.savefig("confusion_matrix.png")
 
 # COMMAND ----------
 

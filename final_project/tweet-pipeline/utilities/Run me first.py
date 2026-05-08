@@ -123,16 +123,16 @@ except Exception as e:
 
 # COMMAND ----------
 
-import mlflow
-from mlflow import MlflowClient
+# import mlflow
+# from mlflow import MlflowClient
 
-mlflow.set_registry_uri("databricks-uc")
+# mlflow.set_registry_uri("databricks-uc")
 
-model_uri = "runs:/f316010fecae469895e30c259a001963/model"
-registered_name = "workspace.default.small_sentiment_model"
+# model_uri = "runs:/f316010fecae469895e30c259a001963/model"
+# registered_name = "workspace.default.small_sentiment_model"
 
-result = mlflow.register_model(model_uri, registered_name)
-print(result)
+# result = mlflow.register_model(model_uri, registered_name)
+# print(result)
 
 # COMMAND ----------
 
