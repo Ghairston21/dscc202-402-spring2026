@@ -8,7 +8,7 @@
 # MAGIC DROP TABLE IF EXISTS workspace.default.tweets_bronze;
 # MAGIC DROP TABLE IF EXISTS workspace.default.tweets_silver;
 # MAGIC DROP TABLE IF EXISTS workspace.default.tweets_gold;
-# MAGIC DROP TABLE IF EXISTS workspace.default.gold_tweet_agg;
+# MAGIC DROP TABLE IF EXISTS workspace.default.gold_tweet_aggregations;
 # MAGIC
 # MAGIC
 

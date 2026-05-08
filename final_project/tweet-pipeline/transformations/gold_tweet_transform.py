@@ -159,9 +159,9 @@ def gold_sentiment_predictions():
     # Map labels to sentiment strings
     df = df.withColumn(
         "predicted_sentiment",
-        when(col("predicted_label") == "LABEL_0", "negative")
-        .when(col("predicted_label") == "LABEL_1", "neutral")
-        .when(col("predicted_label") == "LABEL_2", "positive")
+        when(col("predicted_label") == "NEGATIVE", "negative")
+        .when(col("predicted_label") == "NEUTRAL", "neutral")
+        .when(col("predicted_label") == "POSITIVE", "positive")
     )
     
     # Create binary sentiment_id from ground truth sentiment (0=negative, 1=positive/neutral)
@@ -187,7 +187,6 @@ def gold_sentiment_predictions():
         "predicted_sentiment",
         "sentiment_id",
         "predicted_sentiment_id",
-        "predicted_label"
     )
 
 # COMMAND ----------
