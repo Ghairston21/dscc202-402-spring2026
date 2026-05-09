@@ -163,20 +163,18 @@ def gold_sentiment_predictions():
         .when(col("predicted_label") == "NEUTRAL", "neutral")
         .when(col("predicted_label") == "POSITIVE", "positive")
     )
-    
-    # Create binary sentiment_id from ground truth sentiment (0=negative, 1=positive/neutral)
+
     df = df.withColumn(
         "sentiment_id",
         when(col("sentiment") == "0", 0).otherwise(1)
     )
     
-    # Create binary predicted_sentiment_id (0=negative, 1=positive/neutral)
+
     df = df.withColumn(
         "predicted_sentiment_id",
         when(col("predicted_sentiment") == "negative", 0).otherwise(1)
     )
     
-    # Select final columns (9 total) retaining columns from tweets_silver
     return df.select(
         "timestamp",
         "mention",
